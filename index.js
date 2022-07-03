@@ -1,6 +1,7 @@
 const fs = require('fs');
 const http = require('http');
 const url = require('url');
+const replaceTemplate = require('./modules/replaceTemplate');
 // const textIn = fs.readFileSync('./txt/input.txt', 'utf-8');
 // console.log(textIn);
 
@@ -30,22 +31,6 @@ const url = require('url');
 // console.log('Will read file...');
 // Creating a simple server
 
-const replaceTemplate = (tem, product) => {
-  let outPut = tem
-    .replace(/{%PRODUCTNAME%}/g, product.productName)
-    .replace(/{%IMAGE%}/g, product.image)
-    .replace(/{%PRICE%}/g, product.price)
-    .replace(/{%FROM%}/g, product.from)
-    .replace(/{%NUTRIENTS%}/g, product.nutrients)
-    .replace(/{%QUANTITY%}/g, product.quantity)
-    .replace(/{%DESCRIPTION%}/g, product.description)
-    .replace(/{%ID%}/g, product.id);
-
-  if (!product.organic)
-    outPut = outPut.replace(/{%NOT_ORGANIC%}/g, 'not-organic');
-  return outPut;
-};
-
 const templateOverview = fs.readFileSync(
   './templates/template-overview.html',
   'utf-8'
@@ -59,9 +44,11 @@ const templateProduct = fs.readFileSync(
 const data = fs.readFileSync(`./dev-data/data.json`, 'utf-8');
 const dataObj = JSON.parse(data);
 const server = http.createServer((req, res) => {
-  const pathName = req.url;
+  const { query, pathname } = url.parse(req.url, true);
+  console.log(pathname);
+
   //Overview page
-  if (pathName == '/' || pathName === '/overview') {
+  if (pathname == '/' || pathname === '/overview') {
     res.writeHead(200, {
       'Content-Type': 'text/html',
     });
@@ -75,11 +62,16 @@ const server = http.createServer((req, res) => {
     res.end(outPut);
   }
   //Product page
-  else if (pathName === '/products') {
-    res.end('This is the products page');
+  else if (pathname === '/product') {
+    res.writeHead(200, {
+      ContentType: 'text/html',
+    });
+    const product = dataObj[query.id];
+    const output = replaceTemplate(templateProduct, product);
+    res.end(output);
   }
   //API
-  else if (pathName === '/api') {
+  else if (pathname === '/api') {
     res.writeHead(200, {
       ContentType: 'application/json',
     });
